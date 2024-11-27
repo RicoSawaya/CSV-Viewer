@@ -16,20 +16,30 @@ def InputEntries(): #this write the new entries to the CSV file and deletes all 
         columns = columns[0:-2]
     columns = columns.split(',')
     f.close()
-    f = open(path, 'a')
-    row = ''
 
-    for columnID in range(len(columns)):
-        row += allEntriesList[columnID].get()+','
-        allEntriesList[columnID].delete(0, END)
+    errorFound = False
+    for columnID in range(len(columns)):#this checks if there are any blank entries, if there are, it doesnt write to the csv file
+        if allEntriesList[columnID].get().replace(' ','') == '':
+            errorFound = True
 
-    row = row[0:-1]
-    row+='\n'
-    f.write(row)
-    f.close()
+    if not errorFound: # if no errors, it writes to csv
+        row = ''
+        errorForEntriesLab.grid_forget()
+        for columnID in range(len(columns)):
+            row += allEntriesList[columnID].get()+','
+            allEntriesList[columnID].delete(0, END)
+        row = row[0:-1]
+        row += '\n'
+        f = open(path, 'a')
+        f.write(row)
+        f.close()
+
+    else: # if there is errors, it sends an error message
+        errorForEntriesLab.grid(row=(len(columns))*2,column=2, pady=10, padx=10)
 
 def openCSV():
     path = str(InputPathEntry.get())
+    errorForEntriesLab.grid_forget()
     if os.path.isfile(path):#if the file you inputted is a real file on your system
         pathName = path.split('\\')[-1]
         tk.title('Entries for '+str(pathName)) #change the title
@@ -83,6 +93,8 @@ ErrorPathLab = CTkLabel(InputFilePage,text = 'ERROR:\nCould NOT find specific pa
 InputCSVpage = CTkScrollableFrame(tk,width=450,height=500,fg_color='grey')
 backButton = CTkButton(InputCSVpage,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey')
 enterInputsBut = CTkButton(InputCSVpage,text = 'Input',fg_color = 'green',command = InputEntries,font = FONT,width=70)
+errorForEntriesLab = CTkLabel(InputCSVpage,text='Error:\nALL ENTRIES\nmust be filled',text_color='red',font = FONT)
+
 
 #all variables for a maximum of 30 columns---------------------------------------------------------------
 ent1 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
