@@ -1,0 +1,159 @@
+from tkinter import *
+from customtkinter import *
+import os
+tk = Tk()
+set_appearance_mode("dark")
+def goback():  #back button function, to go back to inputting another file
+    backButton.place_forget()
+    InputFilePage.pack()
+    InputCSVpage.pack_forget()
+
+def InputEntries(): #this write the new entries to the CSV file and deletes all the entry boxes
+    path = str(InputPathEntry.get())
+    f = open(path, 'r')
+    columns = f.readline()
+    if columns[-2] == ',':
+        columns = columns[0:-2]
+    columns = columns.split(',')
+    f.close()
+    f = open(path, 'a')
+    row = ''
+
+    for columnID in range(len(columns)):
+        row += allEntriesList[columnID].get()+','
+        allEntriesList[columnID].delete(0, END)
+
+    row = row[0:-1]
+    row+='\n'
+    f.write(row)
+    f.close()
+
+def openCSV():
+    path = str(InputPathEntry.get())
+    if os.path.isfile(path):#if the file you inputted is a real file on your system
+        pathName = path.split('\\')[-1]
+        tk.title('Entries for '+str(pathName)) #change the title
+        ErrorPathLab.place_forget()
+        InputFilePage.pack_forget()
+
+        InputCSVpage.pack(fill=BOTH,expand = True) #places the scrollable page
+
+
+        f = open(path,'r')
+        columns = f.readline()
+        f.close()
+        if columns[-2] == ',':
+            columns = columns[0:-2]
+        columns = columns.replace('\n','')
+        columns = columns.split(',')
+        #gets all the columns of the csv file
+
+        backButton.grid(row=0,column=0, pady=5, padx=10)  #places back button
+
+        for columnID in range(len(columns)):   #places all columns (places a Label and an Entry box)
+            allLabelsList[columnID].configure(text=str(columns[columnID]))
+            allLabelsList[columnID].grid(row=int(columnID*2)+1, column=1, pady=5, padx=10)
+
+            allEntriesList[columnID].grid(row=int(columnID*2)+1, column=2, pady=10, padx=10)
+
+
+        enterInputsBut.grid(row=(len(columns))*2,column=3, pady=10, padx=10)   # places the button to submit all the values entered
+
+
+    else:
+        ErrorPathLab.place(relx=0.5,rely=0.7,anchor = CENTER)   #if not a file on device, it outputs an error instead
+
+FONT = ('Ariel',15)
+FONT2 = ('Ariel',20)
+
+
+InputFilePage = CTkCanvas(tk,width=450,height=500)
+InputFilePage.pack()
+InputPathLabel = CTkLabel(InputFilePage,text = 'Please input the full path of your CSV file:',font=FONT,text_color='black')
+InputPathLabel.place(relx=0.5,rely=0.3,anchor = CENTER)
+InputPathEntry = CTkEntry(InputFilePage,width=300,font=FONT)
+InputPathEntry.place(relx=0.5,rely=0.4,anchor =CENTER)
+
+RunCSVFileBut = CTkButton(InputFilePage,text = 'Run',font=FONT,fg_color = 'green',command = openCSV)
+RunCSVFileBut.place(relx=0.5,rely=0.5,anchor = CENTER)
+ErrorPathLab = CTkLabel(InputFilePage,text = 'ERROR:\nCould NOT find specific path on device',text_color = 'red',font = FONT)
+
+
+
+InputCSVpage = CTkScrollableFrame(tk,width=450,height=500,fg_color='grey')
+backButton = CTkButton(InputCSVpage,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey')
+enterInputsBut = CTkButton(InputCSVpage,text = 'Input',fg_color = 'green',command = InputEntries,font = FONT,width=70)
+
+#all variables for a maximum of 30 columns---------------------------------------------------------------
+ent1 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent2 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent3 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent4 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent5 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent6 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent7 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent8 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)    
+ent9 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent10 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent11 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent12 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent13 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent14 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent15 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent16 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent17 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent18 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent19 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent20 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent21 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent22 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent23 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent24 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent25 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent26 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent27 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent28 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent29 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+ent30 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
+
+lab1 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab2 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab3 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab4 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab5 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab6 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab7 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab8 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab9 = CTkLabel(InputCSVpage, font = ('Ariel',20))   
+lab10 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab11 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab12 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab13 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab14 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab15 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab16 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab17 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab18 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab19 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab20 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab21 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab22 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab23 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab24 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab25 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab26 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab27 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab28 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab29 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+lab30 = CTkLabel(InputCSVpage, font = ('Ariel',20))  
+
+allLabelsList = [lab1,lab2,lab3,lab4,lab5,lab6,lab7,lab8,lab9,lab10,lab11,lab12,lab13,lab14,lab15,lab16,lab17,lab18,lab19,lab20,lab21,lab22,lab23,lab24,lab25,lab26,lab27,lab28,lab29,lab30]
+
+allEntriesList = [ent1,ent2,ent3,ent4,ent5,ent6,ent7,ent8,ent9,ent10,ent11,ent12,ent13,ent14,ent15,ent16,ent17,ent18,ent19,ent20,ent21,ent22,ent23,ent24,ent25,ent26,ent27,ent28,ent29,ent30]
+#---------------------------------------------------------------
+
+
+
+tk.title('Excel File Location')
+tk.geometry('450x500')
+tk.mainloop()
