@@ -3,10 +3,21 @@ from customtkinter import *
 import os
 tk = Tk()
 set_appearance_mode("dark")
+
+pastSearchesPath = r'C:\Users\RicoS\Documents\txtFilesCode\pastSearches.txt'
 def goback():  #back button function, to go back to inputting another file
     backButton.place_forget()
     InputFilePage.pack()
     InputCSVpage.pack_forget()
+    f = open(pastSearchesPath, 'r')
+    pastSearches = f.readlines()
+
+    ySug = 0.475
+    for searchID in range(len(pastSearches)):
+        name = pastSearches[searchID].split('\\')[-1].replace('\n', '')
+        suggestionButList[searchID].configure(text=name)
+        suggestionButList[searchID].place(relx=0.5, rely=ySug, anchor=CENTER)
+        ySug += 0.075
 
 def InputEntries(): #this write the new entries to the CSV file and deletes all the entry boxes
     path = str(InputPathEntry.get())
@@ -37,8 +48,11 @@ def InputEntries(): #this write the new entries to the CSV file and deletes all 
     else: # if there is errors, it sends an error message
         errorForEntriesLab.grid(row=(len(columns))*2,column=2, pady=10, padx=10)
 
-def openCSV():
-    path = str(InputPathEntry.get())
+def openCSV(path):
+    for lab in allLabelsList:
+        lab.grid_forget()
+    for entry in allEntriesList:
+        entry.grid_forget()
     errorForEntriesLab.grid_forget()
     if os.path.isfile(path):#if the file you inputted is a real file on your system
         pathName = path.split('\\')[-1]
@@ -71,7 +85,79 @@ def openCSV():
 
 
     else:
-        ErrorPathLab.place(relx=0.5,rely=0.7,anchor = CENTER)   #if not a file on device, it outputs an error instead
+        ErrorPathLab.place(relx=0.6,rely=0.3,anchor = CENTER)   #if not a file on device, it outputs an error instead
+
+
+def openThroughSuggestion(sugNum): #if you click a suggestion it is typed through here
+    f = open(pastSearchesPath,'r')
+    allSearches = f.readlines() #all searches is the past searches
+    for id in range(len(allSearches)):
+        allSearches[id] = allSearches[id].replace('\n','')
+    f.close()
+    openCSV(allSearches[sugNum])
+
+    path = allSearches[sugNum]
+
+    f = open(pastSearchesPath, 'r')
+    allSearches = f.readlines()
+    f.close()
+    newSearches = [path]  #now everything below is just creating a list of maximum 5 values (I only want to show the past 5 recent searches)
+    #I added the newest path first into the list because this is the most recent search
+    for id in range(len(allSearches)):
+        allSearches[id] = allSearches[id].replace('\n', '')# just removes all '\n' characters
+
+    for id in range(len(allSearches)):
+        if allSearches[id] == path:
+            allSearches.pop(id) #this deletes a value if it is the same one inputted, so you dont have 2 of the same values in the suggested search
+            break
+
+    for each in allSearches:
+        newSearches.append(each) # after it deletes the similar values, it adds it all to the 'newSearches' list
+
+    script = ''
+    amt = 0
+    for each in newSearches:
+        if amt < 5: #this writes the first 5 values into a string
+            script += each + '\n'
+            amt += 1
+        else:
+            break
+    script = script[0:-1]
+    f = open(pastSearchesPath, 'w')
+    f.write(script) #this then writes the first 5 values into the suggestions txt file, updating the list
+    f.close()
+
+def openthroughInput(path): #if you type the path it is ran through here
+    openCSV(path) #everything below is basically the same thing as the function above, it just updates the 'recent searches' list
+    f = open(pastSearchesPath,'r')
+    allSearches = f.readlines()
+    f.close()
+    newSearches = [path]
+    for id in range(len(allSearches)):
+        allSearches[id] = allSearches[id].replace('\n','')
+
+    for id in range(len(allSearches)):
+        if allSearches[id] == path:
+            allSearches.pop(id)
+            break
+
+    for each in allSearches:
+        newSearches.append(each)
+
+    script = ''
+    amt = 0
+    for each in newSearches:
+        if amt < 5:
+            script+=each+'\n'
+            amt+=1
+        else:
+            break
+    script = script[0:-1]
+    f = open(pastSearchesPath,'w')
+    f.write(script)
+    f.close()
+
+
 
 FONT = ('Ariel',15)
 FONT2 = ('Ariel',20)
@@ -80,15 +166,36 @@ FONT2 = ('Ariel',20)
 InputFilePage = CTkCanvas(tk,width=450,height=500)
 InputFilePage.pack()
 InputPathLabel = CTkLabel(InputFilePage,text = 'Please input the full path of your CSV file:',font=FONT,text_color='black')
-InputPathLabel.place(relx=0.5,rely=0.3,anchor = CENTER)
+InputPathLabel.place(relx=0.5,rely=0.1,anchor = CENTER)
 InputPathEntry = CTkEntry(InputFilePage,width=300,font=FONT)
-InputPathEntry.place(relx=0.5,rely=0.4,anchor =CENTER)
+InputPathEntry.place(relx=0.5,rely=0.2,anchor =CENTER)
+RunCSVFileBut = CTkButton(InputFilePage,text = 'Run',font=FONT,fg_color = 'green',command = lambda: openthroughInput(str(InputPathEntry.get())),width=50)
+RunCSVFileBut.place(relx=0.2,rely=0.3,anchor = CENTER)
+ErrorPathLab = CTkLabel(InputFilePage,text = 'Could NOT find specific path on device',text_color = 'red',font = FONT)
+suggestionsLabel = CTkLabel(InputFilePage,text = 'Past Searches:',font = FONT,text_color='black')
+suggestionsLabel.place(relx=0.5,rely=0.4,anchor = CENTER)
 
-RunCSVFileBut = CTkButton(InputFilePage,text = 'Run',font=FONT,fg_color = 'green',command = openCSV)
-RunCSVFileBut.place(relx=0.5,rely=0.5,anchor = CENTER)
-ErrorPathLab = CTkLabel(InputFilePage,text = 'ERROR:\nCould NOT find specific path on device',text_color = 'red',font = FONT)
+#suggestion buttons
+suggestion1But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(0))
+suggestion2But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(1))
+suggestion3But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(2))
+suggestion4But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(3))
+suggestion5But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(4))
+suggestionButList = [suggestion1But,suggestion2But,suggestion3But,suggestion4But,suggestion5But]
+#----------------
 
 
+f = open(pastSearchesPath,'r')
+pastSearches = f.readlines()
+
+#this renames the buttons to what the past csv files were: Understand they are stored in a separate txt file, that is why I can track searches
+ySug = 0.475
+for searchID in range(len(pastSearches)):
+    name = pastSearches[searchID].split('\\')[-1].replace('\n','')
+    suggestionButList[searchID].configure(text=name)
+    suggestionButList[searchID].place(relx=0.5,rely=ySug,anchor = CENTER)
+    ySug += 0.075
+#-------------------------------------
 
 InputCSVpage = CTkScrollableFrame(tk,width=450,height=500,fg_color='grey')
 backButton = CTkButton(InputCSVpage,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey')
