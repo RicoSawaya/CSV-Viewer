@@ -1,14 +1,25 @@
 from tkinter import *
 from customtkinter import *
+from tkinter.ttk import Treeview
 import os
-tk = Tk()
+import threading
+tk = CTk()
 set_appearance_mode("dark")
 
 pastSearchesPath = r'C:\Users\RicoS\Documents\txtFilesCode\pastSearches.txt'
+
+global expandPath
+global expandedTreeWindow
+global goBackToMainRowPath
+
 def goback():  #back button function, to go back to inputting another file
+    tk.title('Excel File Location')
+
     backButton.place_forget()
+    createCSVpage.pack_forget()
     InputFilePage.pack()
     InputCSVpage.pack_forget()
+    rowPageFrame.pack_forget()
     f = open(pastSearchesPath, 'r')
     pastSearches = f.readlines()
 
@@ -19,8 +30,22 @@ def goback():  #back button function, to go back to inputting another file
         suggestionButList[searchID].place(relx=0.5, rely=ySug, anchor=CENTER)
         ySug += 0.075
 
+def goBackToMainRowPage():
+    global goBackToMainRowPath
+    backButton.place_forget()
+    createCSVpage.pack_forget()
+    InputFilePage.pack_forget()
+    InputCSVpage.pack_forget()
+    editRowFormPage.pack_forget()
+    rowPageFrame.pack()
+    editDeleteRowEntry.delete(0,END)
+
+    openMainPage(goBackToMainRowPath)
+
+
 def InputEntries(): #this write the new entries to the CSV file and deletes all the entry boxes
     path = str(InputPathEntry.get())
+
     f = open(path, 'r')
     columns = f.readline()
     if columns[-2] == ',':
@@ -44,16 +69,27 @@ def InputEntries(): #this write the new entries to the CSV file and deletes all 
         f = open(path, 'a')
         f.write(row)
         f.close()
+        try:
+            expandedTreeWindow.destroy()
+            expandTree(path)
+        except:
+            pass
 
     else: # if there is errors, it sends an error message
         errorForEntriesLab.grid(row=(len(columns))*2,column=2, pady=10, padx=10)
 
 def openCSV(path):
+    global goBackToMainRowPath
+    createCSVpage.pack_forget()
+    rowPageFrame.pack_forget()
+    goBackToMainRowPath = path
+
     for lab in allLabelsList:
         lab.grid_forget()
     for entry in allEntriesList:
         entry.grid_forget()
     errorForEntriesLab.grid_forget()
+
     if os.path.isfile(path):#if the file you inputted is a real file on your system
         pathName = path.split('\\')[-1]
         tk.title('Entries for '+str(pathName)) #change the title
@@ -88,82 +124,401 @@ def openCSV(path):
         ErrorPathLab.place(relx=0.6,rely=0.3,anchor = CENTER)   #if not a file on device, it outputs an error instead
 
 
+def SendOutEdits(path,Id):
+    errorFound = False
+    finalScript = ''
+    f = open(path, 'r')
+    columns = f.readline()
+    f.close()
+    finalScript+=columns
+
+    f = open(path, 'r')
+    rows = f.readlines()[1:]
+    f.close()
+
+    changedRowStr = ''
+
+    columnsList = columns.replace('\n','').split(',')
+    for editsId in range(len(columnsList)):
+        if allEntriesListEdit[editsId].get().replace(' ','') == '':
+            errorFound = True
+        changedRowStr+=allEntriesListEdit[editsId].get()+','
+    changedRowStr = changedRowStr[0:-1]
+    changedRowStr+='\n'
+
+    rows[Id] = changedRowStr
+
+    for row in rows:
+        finalScript+=row
+
+    if not errorFound:
+        f = open(path, 'w')
+        f.write(finalScript)
+        f.close()
+
+        goBackToMainRowPage()
+
+        editDeleteRowEntry.delete(0, END)
+
+        try:
+            expandedTreeWindow.destroy()
+            expandTree(path)
+        except:
+            pass
+
+
+
+    else:
+        errorForEntriesLabEdit.grid(row=(len(columnsList))*2,column=2, pady=10, padx=10)
+def editCsvRow(path):
+    try:
+        Id = int(editDeleteRowEntry.get())
+        IdError = False
+    except:
+        IdError = True
+    if not IdError:
+        global goBackToMainRowPath
+        print(path)
+        print(Id)
+        createCSVpage.pack_forget()
+        rowPageFrame.pack_forget()
+        goBackToMainRowPath = path
+        errorForIdEditDelete.place_forget()
+
+        for lab in allLabelsListEdit:
+            lab.grid_forget()
+        for entry in allEntriesListEdit:
+            entry.grid_forget()
+        for entry in allEntriesListEdit:
+            entry.delete(0,END)
+        errorForEntriesLabEdit.grid_forget()
+
+        pathName = path.split('\\')[-1]
+        tk.title('Edit row #'+str(Id)+' for '+str(pathName)) #change the title
+
+        editRowFormPage.pack(fill=BOTH,expand = True) #places the scrollable page
+
+
+        f = open(path,'r')
+        columns = f.readline()
+        f.close()
+        if columns[-2] == ',':
+            columns = columns[0:-2]
+        columns = columns.replace('\n','')
+        columns = columns.split(',')
+        #gets all the columns of the csv file
+
+        rowValues = []
+        f = open(path, 'r')
+        allRows = f.readlines()[1:]
+        f.close()
+
+        row = allRows[Id].replace('\n','').split(',')
+        for value in row:
+            rowValues.append(value)
+
+
+        editRowBackButton.grid(row=0,column=0, pady=5, padx=10)  #places back button
+
+        for columnID in range(len(columns)):   #places all columns (places a Label and an Entry box)
+            allLabelsListEdit[columnID].configure(text=str(columns[columnID]))
+
+            allLabelsListEdit[columnID].grid(row=int(columnID*2)+1, column=1, pady=5, padx=10)
+
+            allEntriesListEdit[columnID].grid(row=int(columnID*2)+1, column=2, pady=10, padx=10)
+
+        editInputsBut.grid(row=(len(columns)) * 2, column=3, pady=10,padx=10)  # places the button to submit all the values entered
+
+        for valueNum in range(len(rowValues)):
+            allEntriesListEdit[valueNum].delete(0, END)
+            allEntriesListEdit[valueNum].insert(0, rowValues[valueNum])
+
+    else:
+        errorForIdEditDelete.place(relx=0.55,rely=0.9,anchor = CENTER)
+
+
+
+def deleteRow():
+    path = InputPathEntry.get()
+    errorForIdEditDelete.place_forget()
+    try:
+        Id = int(editDeleteRowEntry.get())
+        print(Id)
+        print(path)
+
+        finalScript = ''
+        f = open(path,'r')
+        columns = f.readline()
+        f.close()
+
+        finalScript+=columns
+
+        f = open(path, 'r')
+        rows = f.readlines()[1:]
+        f.close()
+
+        for rowId in range(len(rows)):
+            if rowId != Id:
+                finalScript+=rows[rowId]
+
+        f = open(path,'w')
+        f.write(finalScript)
+        f.close()
+
+        openMainPage(path)
+
+        try:
+            expandedTreeWindow.destroy()
+            expandTree(path)
+        except:
+            pass
+
+    except:
+        errorForIdEditDelete.place(relx=0.55,rely=0.9,anchor = CENTER)
+
+def openMainPage(path):
+    global expandPath
+    expandPath = path
+    rowPageFrame.pack()
+    InputFilePage.pack_forget()
+    errorForIdEditDelete.place_forget()
+    createCSVpage.pack_forget()
+    tk.title(path.split('\\')[-1])
+
+    for i in treeview.get_children():
+        try:
+            treeview.delete(i)
+        except:
+            pass
+
+    f = open(path,'r')
+    columns = ['ID']
+    columnsNoID = f.readline().replace('\n','',).split(',')
+    f.close()
+    for column in columnsNoID:
+        columns.append(column)
+    print(columns)
+
+    treeview['columns'] = columns
+    treeview.column('#0', width=1)
+    treeview.heading('#0', text='')
+    treeview.column('ID', width=10)
+    treeview.heading('ID', text='ID')
+    eachRowWidth = int(530/len(columnsNoID))
+    for column in columnsNoID:
+        treeview.column(column,width=eachRowWidth)
+        treeview.heading(column,text=column)
+
+    f = open(path,'r')
+    rows = f.readlines()[1:]
+    f.close()
+    print(rows)
+
+    id = 0
+    for rowNum in range(len(rows)):
+        values = [id]
+        for eachItem in rows[rowNum].replace('\n','').split(','):
+            values.append(eachItem)
+        treeview.insert(parent='',index = 'end',iid=rowNum,values=values)
+        id+=1
+    treeview.configure(height=id)
+
+def expandTree(path):
+    global expandedTreeWindow
+    try:
+        expandedTreeWindow.destroy()
+    except:
+        pass
+    expandedTreeWindow = CTk()
+    expandedTreeWindow.geometry('1280x720')
+    expandedtreeScrollableFrame = CTkScrollableFrame(expandedTreeWindow, width=1260, height=720)
+    expandedTreeview = Treeview(expandedTreeWindow)
+    expandedtreeScrollableFrame.place(relx=0.5, rely=0.5, anchor=CENTER)
+    expandedTreeview.pack()
+
+    for i in expandedTreeview.get_children():
+        try:
+            expandedTreeview.delete(i)
+        except:
+            pass
+
+    f = open(path, 'r')
+    columns = ['ID']
+    columnsNoID = f.readline().replace('\n', '', ).split(',')
+    f.close()
+    for column in columnsNoID:
+        columns.append(column)
+
+    expandedTreeview['columns'] = columns
+    expandedTreeview.column('#0', width=1)
+    expandedTreeview.heading('#0', text='')
+    expandedTreeview.column('ID', width=50)
+    expandedTreeview.heading('ID', text='ID')
+    eachRowWidth = int(1520 / len(columnsNoID))
+    for column in columnsNoID:
+        expandedTreeview.column(column, width=eachRowWidth)
+        expandedTreeview.heading(column, text=column)
+
+    f = open(path, 'r')
+    rows = f.readlines()[1:]
+    f.close()
+
+    id = 0
+    for rowNum in range(len(rows)):
+        values = [id]
+        for eachItem in rows[rowNum].replace('\n', '').split(','):
+            values.append(eachItem)
+        expandedTreeview.insert(parent='', index='end', iid=rowNum, values=values)
+        id += 1
+    expandedTreeview.configure(height=id)
+
+    expandedTreeWindow.mainloop()
+
 def openThroughSuggestion(sugNum): #if you click a suggestion it is typed through here
     f = open(pastSearchesPath,'r')
     allSearches = f.readlines() #all searches is the past searches
-    for id in range(len(allSearches)):
-        allSearches[id] = allSearches[id].replace('\n','')
+    path = allSearches[sugNum].replace('\n','').lower()
     f.close()
-    openCSV(allSearches[sugNum])
 
-    path = allSearches[sugNum]
 
-    f = open(pastSearchesPath, 'r')
-    allSearches = f.readlines()
-    f.close()
-    newSearches = [path]  #now everything below is just creating a list of maximum 5 values (I only want to show the past 5 recent searches)
-    #I added the newest path first into the list because this is the most recent search
-    for id in range(len(allSearches)):
-        allSearches[id] = allSearches[id].replace('\n', '')# just removes all '\n' characters
+    if os.path.isfile(path):#if the file you inputted is a real file on your system
+        InputPathEntry.delete(0,END)
+        InputPathEntry.insert(0,path)
+        for id in range(len(allSearches)):
+            allSearches[id] = allSearches[id].replace('\n','')
+        openMainPage(allSearches[sugNum])
 
-    for id in range(len(allSearches)):
-        if allSearches[id] == path:
-            allSearches.pop(id) #this deletes a value if it is the same one inputted, so you dont have 2 of the same values in the suggested search
-            break
 
-    for each in allSearches:
-        newSearches.append(each) # after it deletes the similar values, it adds it all to the 'newSearches' list
+        f = open(pastSearchesPath, 'r')
+        allSearches = f.readlines()
+        f.close()
+        newSearches = [path]  #now everything below is just creating a list of maximum 5 values (I only want to show the past 5 recent searches)
+        #I added the newest path first into the list because this is the most recent search
+        for id in range(len(allSearches)):
+            allSearches[id] = allSearches[id].replace('\n', '')# just removes all '\n' characters
 
-    script = ''
-    amt = 0
-    for each in newSearches:
-        if amt < 5: #this writes the first 5 values into a string
-            script += each + '\n'
-            amt += 1
-        else:
-            break
-    script = script[0:-1]
-    f = open(pastSearchesPath, 'w')
-    f.write(script) #this then writes the first 5 values into the suggestions txt file, updating the list
-    f.close()
+        for id in range(len(allSearches)):
+            if allSearches[id] == path:
+                allSearches.pop(id) #this deletes a value if it is the same one inputted, so you dont have 2 of the same values in the suggested search
+                break
+
+        for each in allSearches:
+            newSearches.append(each)  # after it deletes the similar values, it adds it all to the 'newSearches' list
+
+        script = ''
+        amt = 0
+        for each in newSearches:
+            if amt < 5: #this writes the first 5 values into a string
+                script += each + '\n'
+                amt += 1
+            else:
+                break
+        script = script[0:-1]
+        f = open(pastSearchesPath, 'w')
+        f.write(script) #this then writes the first 5 values into the suggestions txt file, updating the list
+        f.close()
+
+    else:
+        ErrorPathLab.place(relx=0.6,rely=0.3,anchor = CENTER)
+        f = open(pastSearchesPath,'r')
+        allSearches = f.readlines()
+        f.close()
+
+        for searchID in range(len(allSearches)):
+            if allSearches[searchID].replace('\n','') == path:
+                allSearches.pop(searchID)
+                break
+        f = open(pastSearchesPath,'w')
+        newScript = ''
+        for newOnes in allSearches:
+            newOnes = newOnes.replace('\n','')
+            newScript+=newOnes+'\n'
+        newScript = newScript[0:-1]
+        f.write(newScript)
+        f.close()
+
+        f = open(pastSearchesPath, 'r')
+        pastSearches = f.readlines()
+
+        # this renames the buttons to what the past csv files were: Understand they are stored in a separate txt file, that is why I can track searches
+        ySug = 0.475
+        for i in range(5):
+            suggestionButList[i].place_forget()
+
+
+        for searchID in range(len(pastSearches)):
+            name = pastSearches[searchID].split('\\')[-1].replace('\n', '')
+            suggestionButList[searchID].configure(text=name)
+            suggestionButList[searchID].place(relx=0.5, rely=ySug, anchor=CENTER)
+            ySug += 0.075
 
 def openthroughInput(path): #if you type the path it is ran through here
-    openCSV(path) #everything below is basically the same thing as the function above, it just updates the 'recent searches' list
-    f = open(pastSearchesPath,'r')
-    allSearches = f.readlines()
-    f.close()
-    newSearches = [path]
-    for id in range(len(allSearches)):
-        allSearches[id] = allSearches[id].replace('\n','')
+    path = path.lower()
+    openMainPage(path) #everything below is basically the same thing as the function above, it just updates the 'recent searches' list
 
-    for id in range(len(allSearches)):
-        if allSearches[id] == path:
-            allSearches.pop(id)
-            break
+    if os.path.isfile(path):
+        f = open(pastSearchesPath,'r')
+        allSearches = f.readlines()
+        f.close()
+        newSearches = [path]
+        for id in range(len(allSearches)):
+            allSearches[id] = allSearches[id].replace('\n','')
 
-    for each in allSearches:
-        newSearches.append(each)
+        for id in range(len(allSearches)):
+            if allSearches[id] == path:
+                allSearches.pop(id)
+                break
 
-    script = ''
-    amt = 0
-    for each in newSearches:
-        if amt < 5:
-            script+=each+'\n'
-            amt+=1
-        else:
-            break
-    script = script[0:-1]
-    f = open(pastSearchesPath,'w')
-    f.write(script)
-    f.close()
+        for each in allSearches:
+            newSearches.append(each)
 
+        script = ''
+        amt = 0
+        for each in newSearches:
+            if amt < 5:
+                script+=each+'\n'
+                amt+=1
+            else:
+                break
+        script = script[0:-1]
+        f = open(pastSearchesPath,'w')
+        f.write(script)
+        f.close()
+    else:
+        pass
+def createCSV():
+    InputFilePage.pack_forget()
+    createCSVpage.pack()
+    ErrorCreatingCSVLab.place_forget()
+    tk.title('Create CSV File')
 
+    columnsEntry.delete(0,END)
+    newCSVentry.delete(0,END)
+
+def createANDrunCSV(path,columns):
+    try:
+        path = path.lower()
+        f = open(path,'w')
+        columns = columns.split(',')
+        script = ''
+        for column in columns:
+            script+=column+','
+
+        script = script[0:-1]
+        script+='\n'
+        f.write(script)
+        f.close()
+        InputPathEntry.delete(0, END)
+        InputPathEntry.insert(0, path)
+        openthroughInput(path)
+    except:
+        ErrorCreatingCSVLab.place(relx=0.5,rely=0.7,anchor = CENTER)
 
 FONT = ('Ariel',15)
 FONT2 = ('Ariel',20)
 
 
-InputFilePage = CTkCanvas(tk,width=450,height=500)
+InputFilePage = CTkFrame(tk,width=450,height=500)
 InputFilePage.pack()
 InputPathLabel = CTkLabel(InputFilePage,text = 'Please input the full path of your CSV file:',font=FONT,text_color='black')
 InputPathLabel.place(relx=0.5,rely=0.1,anchor = CENTER)
@@ -171,10 +526,27 @@ InputPathEntry = CTkEntry(InputFilePage,width=300,font=FONT)
 InputPathEntry.place(relx=0.5,rely=0.2,anchor =CENTER)
 RunCSVFileBut = CTkButton(InputFilePage,text = 'Run',font=FONT,fg_color = 'green',command = lambda: openthroughInput(str(InputPathEntry.get())),width=50)
 RunCSVFileBut.place(relx=0.2,rely=0.3,anchor = CENTER)
+createCSVFileBut = CTkButton(InputFilePage,text = 'Create new\nCSV',fg_color = 'red',text_color='white',font = FONT,width = 50,command=createCSV)
+createCSVFileBut.place(relx=0.2,rely=0.4,anchor = CENTER)
 ErrorPathLab = CTkLabel(InputFilePage,text = 'Could NOT find specific path on device',text_color = 'red',font = FONT)
 suggestionsLabel = CTkLabel(InputFilePage,text = 'Past Searches:',font = FONT,text_color='black')
 suggestionsLabel.place(relx=0.5,rely=0.4,anchor = CENTER)
 
+
+createCSVpage = CTkFrame(tk,width=450,height=500)
+backButtonCreateTOhome = CTkButton(createCSVpage,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey')
+backButtonCreateTOhome.place(relx=0.1,rely=0.1,anchor = CENTER)
+fullPathLab = CTkLabel(createCSVpage,text='Write FULL path of CSV file.\nEx: C:\\Users\\John\\Desktop\\txtDocs\\reports.csv',font = FONT,text_color='black')
+fullPathLab.place(relx=0.5,rely=0.2,anchor = CENTER)
+newCSVentry = CTkEntry(createCSVpage,width=300,font = FONT,fg_color='white',text_color='black')
+newCSVentry.place(relx=0.5,rely=0.3,anchor = CENTER)
+columnsLabel = CTkLabel(createCSVpage,text = 'Enter all columns you would like.\nEx: Id,Name,Date,Salary',text_color='black',font = FONT)
+columnsLabel.place(relx=0.5,rely=0.4,anchor = CENTER)
+columnsEntry = CTkEntry(createCSVpage,width=400,font = FONT)
+columnsEntry.place(relx=0.5,rely=0.5,anchor = CENTER)
+createCSVBut = CTkButton(createCSVpage,text = 'Create and Run CSV',font = FONT,width = 10,command=lambda: createANDrunCSV(newCSVentry.get(),columnsEntry.get()))
+createCSVBut.place(relx=0.5,rely=0.6,anchor = CENTER)
+ErrorCreatingCSVLab = CTkLabel(createCSVpage,text = 'ERROR: Path cannot be created\ncheck input again.',font=FONT,text_color='red')
 #suggestion buttons
 suggestion1But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(0))
 suggestion2But = CTkButton(InputFilePage,text='',text_color='black',font=FONT,fg_color='white',command=lambda: openThroughSuggestion(1))
@@ -198,10 +570,107 @@ for searchID in range(len(pastSearches)):
 #-------------------------------------
 
 InputCSVpage = CTkScrollableFrame(tk,width=450,height=500,fg_color='grey')
-backButton = CTkButton(InputCSVpage,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey')
+backButton = CTkButton(InputCSVpage,text = '<',font = ('Ariel',20),command=goBackToMainRowPage,width=30,fg_color='grey')
 enterInputsBut = CTkButton(InputCSVpage,text = 'Input',fg_color = 'green',command = InputEntries,font = FONT,width=70)
 errorForEntriesLab = CTkLabel(InputCSVpage,text='Error:\nALL ENTRIES\nmust be filled',text_color='red',font = FONT)
 
+
+
+#Row Page
+rowPageFrame = CTkFrame(tk,width=450,height=500)
+rowPageBackBut = CTkButton(rowPageFrame,text = '<',font = ('Ariel',20),command=goback,width=30,fg_color='grey' )
+rowPageBackBut.place(relx=0.05,rely=0.05,anchor = CENTER)
+treeScrollableFrame = CTkScrollableFrame(rowPageFrame,width=430,height=350)
+treeScrollableFrame.place(relx=0.5,rely=0.45,anchor = CENTER)
+treeview = Treeview(treeScrollableFrame)
+treeview.pack()
+expandWindowBut = CTkButton(rowPageFrame,text='Expand',font = FONT,text_color='black',width=10,command = lambda: expandTree(expandPath))
+expandWindowBut.place(relx=0.9,rely=0.05,anchor= CENTER)
+addRowBut = CTkButton(rowPageFrame,text='Add Row',text_color='black',font = FONT,width=10,command = lambda: openCSV(expandPath))
+addRowBut.place(relx=0.85,rely=0.87,anchor = CENTER)
+
+
+
+
+editRowLab = CTkLabel(rowPageFrame,text = 'Edit/Delete row:\n Enter ID#',font = FONT)
+editRowLab.place(relx=0.15,rely=0.87,anchor = CENTER)
+editDeleteRowEntry = CTkEntry(rowPageFrame,font=FONT,width=50,fg_color='white',text_color='black')
+editDeleteRowEntry.place(relx=0.14,rely=0.94,anchor = CENTER)
+editRowBut = CTkButton(rowPageFrame,font = FONT,text_color='black',text='Edit Row',width=10,command = lambda: editCsvRow(str(InputPathEntry.get())))
+editRowBut.place(relx=0.37,rely=0.87,anchor = CENTER)
+deleteRowBut = CTkButton(rowPageFrame,text = 'Delete Row',font = FONT,text_color='black',width = 10,command = deleteRow)
+deleteRowBut.place(relx=0.37,rely=0.94,anchor = CENTER)
+
+errorForIdEditDelete = CTkLabel(rowPageFrame,text='Error',text_color='red',font = FONT)
+
+
+
+editRowFormPage = CTkScrollableFrame(tk,width=450,height=500)
+errorForEntriesLabEdit = CTkLabel(editRowFormPage,text='Error:\nALL ENTRIES\nmust be filled',text_color='red',font = FONT)
+editRowBackButton = CTkButton(editRowFormPage,text = '<',font = ('Ariel',20),command=goBackToMainRowPage,width=30,fg_color='grey' )
+editInputsBut = CTkButton(editRowFormPage,text = 'Edit Row',fg_color = 'green',font = FONT,width=70,command = lambda: SendOutEdits(str(InputPathEntry.get()),int(editDeleteRowEntry.get())))
+
+ent1Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent2Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent3Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent4Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent5Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent6Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent7Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent8Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent9Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent10Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent11Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent12Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent13Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent14Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent15Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent16Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent17Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent18Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent19Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent20Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent21Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent22Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent23Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent24Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent25Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent26Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent27Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent28Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent29Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+ent30Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
+
+lab1Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab2Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab3Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab4Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab5Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab6Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab7Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab8Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab9Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab10Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab11Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab12Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab13Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab14Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab15Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab16Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab17Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab18Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab19Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab20Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab21Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab22Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab23Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab24Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab25Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab26Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab27Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab28Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab29Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
+lab30Edit = CTkLabel(editRowFormPage, font = ('Ariel',20))
 
 #all variables for a maximum of 30 columns---------------------------------------------------------------
 ent1 = CTkEntry(InputCSVpage,width = 100 , font = FONT2)
@@ -269,9 +738,11 @@ lab30 = CTkLabel(InputCSVpage, font = ('Ariel',20))
 allLabelsList = [lab1,lab2,lab3,lab4,lab5,lab6,lab7,lab8,lab9,lab10,lab11,lab12,lab13,lab14,lab15,lab16,lab17,lab18,lab19,lab20,lab21,lab22,lab23,lab24,lab25,lab26,lab27,lab28,lab29,lab30]
 
 allEntriesList = [ent1,ent2,ent3,ent4,ent5,ent6,ent7,ent8,ent9,ent10,ent11,ent12,ent13,ent14,ent15,ent16,ent17,ent18,ent19,ent20,ent21,ent22,ent23,ent24,ent25,ent26,ent27,ent28,ent29,ent30]
+
+allLabelsListEdit = [lab1Edit,lab2Edit,lab3Edit,lab4Edit,lab5Edit,lab6Edit,lab7Edit,lab8Edit,lab9Edit,lab10Edit,lab11Edit,lab12Edit,lab13Edit,lab14Edit,lab15Edit,lab16Edit,lab17Edit,lab18Edit,lab19Edit,lab20Edit,lab21Edit,lab22Edit,lab23Edit,lab24Edit,lab25Edit,lab26Edit,lab27Edit,lab28Edit,lab29Edit,lab30Edit]
+
+allEntriesListEdit = [ent1Edit,ent2Edit,ent3Edit,ent4Edit,ent5Edit,ent6Edit,ent7Edit,ent8Edit,ent9Edit,ent10Edit,ent11Edit,ent12Edit,ent13Edit,ent14Edit,ent15Edit,ent16Edit,ent17Edit,ent18Edit,ent19Edit,ent20Edit,ent21Edit,ent22Edit,ent23Edit,ent24Edit,ent25Edit,ent26Edit,ent27Edit,ent28Edit,ent29Edit,ent30Edit]
 #---------------------------------------------------------------
-
-
 
 tk.title('Excel File Location')
 tk.geometry('450x500')
