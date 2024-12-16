@@ -1,6 +1,8 @@
 from tkinter import *
 from customtkinter import *
 from tkinter.ttk import Treeview
+import pandas as pd
+
 import os
 import threading
 tk = CTk()
@@ -11,8 +13,19 @@ pastSearchesPath = r'C:\Users\RicoS\Documents\txtFilesCode\pastSearches.txt'
 global expandPath
 global expandedTreeWindow
 global goBackToMainRowPath
+global treeview
+treeview = 'just made'
 
 def goback():  #back button function, to go back to inputting another file
+    global treeview
+    try:
+        for i in treeview.get_children():
+            try:
+                treeview.delete(i)
+            except:
+                pass
+    except:
+        pass
     tk.title('Excel File Location')
 
     backButton.place_forget()
@@ -32,11 +45,21 @@ def goback():  #back button function, to go back to inputting another file
 
 def goBackToMainRowPage():
     global goBackToMainRowPath
+    global treeview
+    try:
+        for i in treeview.get_children():
+            try:
+                treeview.delete(i)
+            except:
+                pass
+    except:
+        pass
     backButton.place_forget()
     createCSVpage.pack_forget()
     InputFilePage.pack_forget()
     InputCSVpage.pack_forget()
     editRowFormPage.pack_forget()
+    seeDataPage.pack_forget()
     rowPageFrame.pack()
     editDeleteRowEntry.delete(0,END)
 
@@ -276,14 +299,117 @@ def deleteRow():
     except:
         errorForIdEditDelete.place(relx=0.55,rely=0.9,anchor = CENTER)
 
+
+def seeData(path):
+    global goBackToMainRowPath
+    goBackToMainRowPath = path
+    rowPageFrame.pack_forget()
+    seeDataPage.pack()
+    seeDataToMainBackBut.place(relx=0.05,rely=0.05,anchor = CENTER)
+    tk.title(path.split('\\')[-1].replace('\n','')+' Data Description')
+
+    for i in seeDataTree.get_children():
+        try:
+            seeDataTree.delete(i)
+        except:
+            pass
+
+    df = pd.read_csv(path)
+    descDf = df.describe()
+    '''
+    expandedTreeview['columns'] = columns
+    expandedTreeview.column('#0', width=1)
+    expandedTreeview.heading('#0', text='')
+    expandedTreeview.column('ID', width=50)
+    expandedTreeview.heading('ID', text='ID')
+    eachRowWidth = int(1520 / len(columnsNoID))
+    for column in columnsNoID:
+        expandedTreeview.column(column, width=eachRowWidth)
+        expandedTreeview.heading(column, text=column)
+    '''
+
+    columnsAdd = list(descDf.columns)
+    columns = ['']
+    for column in columnsAdd:
+        columns.append(column)
+
+    seeDataTree['columns'] = columns
+    seeDataTree.column('#0',width = 1)
+    seeDataTree.heading('#0', text='')
+    seeDataTree.column('',width=70)
+    seeDataTree.heading('',text = '')
+
+    eachRowWidth = int(530 / len(columnsAdd))
+    rowsInit = ['count','mean','std','min','25%','50%','75%','max']
+
+    for column in columnsAdd:
+        seeDataTree.column(column,width = eachRowWidth)
+        seeDataTree.heading(column, text=column)
+
+    '''
+    treeview.insert(parent='',index = 'end',iid=rowNum,values=values)
+    '''
+
+    for rowId in range(len(rowsInit)):
+        valuesAdd = list(descDf.iloc[rowId])
+        vals = [rowsInit[rowId]]
+        for i in valuesAdd:
+            vals.append(i)
+
+        seeDataTree.insert(parent = '',index = 'end',iid =rowId,values=vals)
+
+
+def downloadDataFunc(path):
+    df = pd.read_csv(path)
+    descDf = df.describe()
+
+    newPath = path.replace('.','DataDescription.')
+
+    finalTxt = ''
+
+    columnsAdd = list(descDf.columns)
+    columns = ['']
+    for column in columnsAdd:
+        columns.append(column)
+
+    for column in columns:
+        finalTxt += column +','
+    finalTxt = finalTxt[0:-1]
+    finalTxt+='\n'
+
+    rowsInit = ['count','mean','std','min','25%','50%','75%','max']
+
+    for rowId in range(len(rowsInit)):
+        finalTxt+= rowsInit[rowId]+','
+        tempList = list(descDf.iloc[rowId])
+        for val in tempList:
+            finalTxt+=str(val)+','
+        finalTxt = finalTxt[0:-1]
+        finalTxt+='\n'
+    finalTxt = finalTxt[0:-1]
+
+    f = open(newPath,'w')
+    f.write(finalTxt)
+    f.close()
+
+    print(descDf)
+
+
+
+
 def openMainPage(path):
     global expandPath
+    global treeview
     expandPath = path
     rowPageFrame.pack()
     InputFilePage.pack_forget()
     errorForIdEditDelete.place_forget()
     createCSVpage.pack_forget()
     tk.title(path.split('\\')[-1])
+
+    if treeview == 'just made':
+        treeview = Treeview(treeScrollableFrame)
+        treeview.pack()
 
     for i in treeview.get_children():
         try:
@@ -309,6 +435,9 @@ def openMainPage(path):
         treeview.column(column,width=eachRowWidth)
         treeview.heading(column,text=column)
 
+
+
+
     f = open(path,'r')
     rows = f.readlines()[1:]
     f.close()
@@ -321,6 +450,7 @@ def openMainPage(path):
             values.append(eachItem)
         treeview.insert(parent='',index = 'end',iid=rowNum,values=values)
         id+=1
+
     treeview.configure(height=id)
 
 def expandTree(path):
@@ -330,6 +460,7 @@ def expandTree(path):
     except:
         pass
     expandedTreeWindow = CTk()
+    expandedTreeWindow.title(path.replace('\n','').split('\\')[-1])
     expandedTreeWindow.geometry('1280x720')
     expandedtreeScrollableFrame = CTkScrollableFrame(expandedTreeWindow, width=1260, height=720)
     expandedTreeview = Treeview(expandedTreeWindow)
@@ -582,13 +713,12 @@ rowPageBackBut = CTkButton(rowPageFrame,text = '<',font = ('Ariel',20),command=g
 rowPageBackBut.place(relx=0.05,rely=0.05,anchor = CENTER)
 treeScrollableFrame = CTkScrollableFrame(rowPageFrame,width=430,height=350)
 treeScrollableFrame.place(relx=0.5,rely=0.45,anchor = CENTER)
-treeview = Treeview(treeScrollableFrame)
-treeview.pack()
 expandWindowBut = CTkButton(rowPageFrame,text='Expand',font = FONT,text_color='black',width=10,command = lambda: expandTree(expandPath))
 expandWindowBut.place(relx=0.9,rely=0.05,anchor= CENTER)
 addRowBut = CTkButton(rowPageFrame,text='Add Row',text_color='black',font = FONT,width=10,command = lambda: openCSV(expandPath))
 addRowBut.place(relx=0.85,rely=0.87,anchor = CENTER)
-
+seeDataBut = CTkButton(rowPageFrame,text = 'See Data',text_color='black',font = FONT,width=10,command = lambda: seeData(expandPath))
+seeDataBut.place(relx=0.85,rely=0.94,anchor = CENTER)
 
 
 
@@ -603,12 +733,20 @@ deleteRowBut.place(relx=0.37,rely=0.94,anchor = CENTER)
 
 errorForIdEditDelete = CTkLabel(rowPageFrame,text='Error',text_color='red',font = FONT)
 
-
-
 editRowFormPage = CTkScrollableFrame(tk,width=450,height=500)
 errorForEntriesLabEdit = CTkLabel(editRowFormPage,text='Error:\nALL ENTRIES\nmust be filled',text_color='red',font = FONT)
 editRowBackButton = CTkButton(editRowFormPage,text = '<',font = ('Ariel',20),command=goBackToMainRowPage,width=30,fg_color='grey' )
 editInputsBut = CTkButton(editRowFormPage,text = 'Edit Row',fg_color = 'green',font = FONT,width=70,command = lambda: SendOutEdits(str(InputPathEntry.get()),int(editDeleteRowEntry.get())))
+
+
+seeDataPage = CTkFrame(tk,width=450,height=500)
+seeDataToMainBackBut = CTkButton(seeDataPage,text = '<',font = ('Ariel',20),command=goBackToMainRowPage,width=30,fg_color='grey')
+seeDataScrollFrame = CTkFrame(seeDataPage,width=450)
+seeDataScrollFrame.place(relx=0.5,rely=0.25,anchor = CENTER)
+seeDataTree = Treeview(seeDataScrollFrame,height=8)
+seeDataTree.pack()
+downloadDataBut = CTkButton(seeDataPage,text = 'Download',text_color='black',fg_color='green',command = lambda: downloadDataFunc(str(InputPathEntry.get())))
+downloadDataBut.place(relx=0.75,rely=0.9,anchor = CENTER)
 
 ent1Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
 ent2Edit = CTkEntry(editRowFormPage,width = 100 , font = FONT2)
