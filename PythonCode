@@ -8,7 +8,7 @@ import threading
 tk = CTk()
 set_appearance_mode("dark")
 
-pastSearchesPath = r'C:\Users\RicoS\Documents\txtFilesCode\pastSearches.txt'
+pastSearchesPath = r'ENTER AN EMPTY TEXT FILE PATH'
 
 global expandPath
 global expandedTreeWindow
